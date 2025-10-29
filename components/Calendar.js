@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import logger, { createServiceLogger } from '@/lib/logger'
+
+// Create service-specific logger
+const calendarLogger = createServiceLogger('google-calendar')
 
 export default function Calendar({ userId }) {
   const [events, setEvents] = useState([])
@@ -16,6 +20,8 @@ export default function Calendar({ userId }) {
 
   const checkGoogleConnection = async () => {
     try {
+      calendarLogger.info('Checking Google Calendar connection')
+      
       const { data, error } = await supabase
         .from('google_tokens')
         .select('access_token')
@@ -26,27 +32,48 @@ export default function Calendar({ userId }) {
         setConnected(true)
         fetchCalendarEvents()
       } else {
+        calendarLogger.info('Google Calendar not connected', { userId })
         setLoading(false)
       }
     } catch (err) {
-      console.error('Error checking Google connection:', err)
+      calendarLogger.error('Failed to check Google connection', {
+        errorType: 'CONNECTION_CHECK_FAILED',
+        error: err.message,
+        userId
+      })
       setLoading(false)
     }
   }
 
   const fetchCalendarEvents = async () => {
     try {
+      calendarLogger.info('Fetching calendar events')
+      
       const response = await fetch('/api/calendar')
       const data = await response.json()
 
       if (response.ok) {
         setEvents(data.events || [])
         setError(null)
+        calendarLogger.info('Calendar events fetched successfully', { 
+          eventCount: data.events?.length || 0 
+        })
       } else {
         setError(data.error)
+        calendarLogger.error('Failed to fetch calendar events', {
+          errorType: 'API_ERROR',
+          statusCode: response.status,
+          error: data.error
+        })
       }
     } catch (err) {
-      setError('Failed to fetch calendar events')
+      const errorMessage = 'Failed to fetch calendar events'
+      setError(errorMessage)
+      calendarLogger.error(errorMessage, {
+        errorType: 'FETCH_ERROR',
+        error: err.message,
+        stack: err.stack
+      })
     } finally {
       setLoading(false)
     }
@@ -54,15 +81,27 @@ export default function Calendar({ userId }) {
 
   const handleConnectGoogle = async () => {
     try {
+      calendarLogger.info('Initiating Google Calendar connection')
+      
       const response = await fetch('/api/auth/google')
       const data = await response.json()
+      
       if (data.url) {
         window.location.href = data.url
       } else {
-        setError('Failed to generate Google auth URL')
+        const errorMessage = 'Failed to generate Google auth URL'
+        setError(errorMessage)
+        calendarLogger.error(errorMessage, {
+          errorType: 'AUTH_URL_GENERATION_FAILED'
+        })
       }
     } catch (err) {
-      setError('Failed to connect to Google')
+      const errorMessage = 'Failed to connect to Google'
+      setError(errorMessage)
+      calendarLogger.error(errorMessage, {
+        errorType: 'CONNECTION_ERROR',
+        error: err.message
+      })
     }
   }
 
