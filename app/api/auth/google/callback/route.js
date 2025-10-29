@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic'
+
+
 import { NextResponse } from 'next/server'
 import { getOAuth2Client } from '@/lib/google-calendar'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
