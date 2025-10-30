@@ -1,92 +1,74 @@
 # Deployment Guide
 
-This guide covers deploying Life Dashboard to production on Vercel.
+How to deploy Life Dashboard to production using our feature branch workflow.
 
 ---
 
-## 📋 Table of Contents
+## Quick Reference
 
-1. [Overview](#overview)
-2. [Prerequisites](#prerequisites)
-3. [Initial Deployment](#initial-deployment)
-4. [Environment Variables](#environment-variables)
-5. [Database Setup](#database-setup)
-6. [Post-Deployment](#post-deployment)
-7. [Updating Production](#updating-production)
-8. [Rollback](#rollback)
-9. [Monitoring](#monitoring)
-10. [Troubleshooting](#troubleshooting)
+**Production:** https://life-dashboard-ri1t.vercel.app  
+**Health Check:** https://life-dashboard-ri1t.vercel.app/api/health  
+**Method:** Feature branches → Preview → Merge → Production
 
 ---
 
-## Overview
+## Deployment Workflow
 
-**Deployment Stack:**
-- **Frontend + API:** Vercel (serverless)
-- **Database:** Supabase (managed PostgreSQL)
-- **Domain:** Vercel auto-generated or custom
+### Standard Process (Feature Branch)
 
-**Current Production URL:** `https://life-dashboard-ri1t.vercel.app`
-
-**Deployment Method:** Automatic via Git push to main branch
-
----
-
-## Prerequisites
-
-Before deploying, ensure you have:
-
-- [x] Vercel account created
-- [x] Vercel CLI installed (optional): `npm i -g vercel`
-- [x] GitHub repository set up
-- [x] Supabase project created
-- [x] Google OAuth credentials (production URLs)
-- [x] Code tested locally
-
----
-
-## Initial Deployment
-
-### Step 1: Push Code to GitHub
-
+1. **Create feature branch:**
 ```bash
-# Initialize git (if not already)
-git init
-git add .
-git commit -m "Initial commit"
-
-# Add remote and push
-git remote add origin https://github.com/mllivingston/life-dashboard.git
-git branch -M main
-git push -u origin main
+git checkout -b feature/my-feature
 ```
 
-### Step 2: Connect Vercel to GitHub
+2. **Make changes and push:**
+```bash
+git add .
+git commit -m "feat: description"
+git push origin feature/my-feature
+```
 
-1. Go to [vercel.com](https://vercel.com)
-2. Sign in with GitHub
-3. Click **Add New...** → **Project**
-4. Import `life-dashboard` repository
-5. Configure project:
-   - **Framework Preset:** Next.js ✅ (auto-detected)
-   - **Root Directory:** `./`
-   - **Build Command:** `npm run build`
-   - **Output Directory:** `.next`
+3. **Vercel auto-creates preview deployment** (⌚ 30-60 seconds)
+   - Preview URL: `https://life-dashboard-ri1t-[hash].vercel.app`
+   - Same environment as production
+   - Safe to test changes
 
-### Step 3: Add Environment Variables
+4. **Create Pull Request on GitHub**
 
-In Vercel project settings, add these variables:
+5. **Test on preview deployment:**
+   - Click "View deployment" button in PR
+   - Verify all functionality works
+   - Check health endpoint: `[preview-url]/api/health`
+   - Test critical user flows
+
+6. **Merge PR when tests pass:**
+   - Vercel automatically deploys to production
+   - Preview deployment auto-deleted
+   - Production updated in ~60 seconds
+
+7. **Verify production:**
+   - Visit: https://life-dashboard-ri1t.vercel.app
+   - Check health: https://life-dashboard-ri1t.vercel.app/api/health
+   - Test critical flows
+
+For detailed workflow documentation, see [WORKFLOW.md](./WORKFLOW.md).
+
+---
+
+## Environment Variables
+
+### Required Variables
 
 **Supabase:**
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://uzygfzjkxffmcesliwsb.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...
 ```
 
 **Google OAuth:**
 ```
 GOOGLE_CLIENT_ID=96666258855-2tpl78o0c8m4de0nshmpf5rht8c6sgge.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=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
+GOOGLE_CLIENT_SECRET=GOCSPX-...
 ```
 
 **NextAuth:**
@@ -96,258 +78,128 @@ NEXTAUTH_URL=https://life-dashboard-ri1t.vercel.app
 NEXT_PUBLIC_GOOGLE_REDIRECT_URI=https://life-dashboard-ri1t.vercel.app/api/auth/google/callback
 ```
 
-**Optional - Logging:**
+**Optional:**
 ```
 NEXT_PUBLIC_LOG_LEVEL=info
 NEXT_PUBLIC_ENABLE_DB_LOGGING=true
-NEXT_PUBLIC_APP_VERSION=1.1.0
 ```
 
-**Important:** Check all three environments (Production, Preview, Development)
+### Managing Variables in Vercel
 
-### Step 4: Deploy
-
-Click **Deploy** and wait 2-3 minutes.
-
-**Expected result:** Deployment succeeds, you get a URL like `https://life-dashboard-abc123.vercel.app`
-
----
-
-## Environment Variables
-
-### Managing Environment Variables
-
-**In Vercel Dashboard:**
-1. Project → Settings → Environment Variables
-2. Add/Edit/Delete variables
-3. **After changes:** Redeploy for them to take effect
-
-**Environment Types:**
-- **Production:** Used for `main` branch deployments
-- **Preview:** Used for feature branch deployments
-- **Development:** Used for local development (not typically needed)
-
-### Required Variables
-
-| Variable | Example | Purpose |
-|----------|---------|---------|
-| `NEXT_PUBLIC_SUPABASE_URL` | `https://xyz.supabase.co` | Supabase API URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `eyJh...` | Supabase anon key |
-| `GOOGLE_CLIENT_ID` | `123-abc.apps.googleusercontent.com` | Google OAuth |
-| `GOOGLE_CLIENT_SECRET` | `GOCSPX-abc123` | Google OAuth secret |
-| `NEXTAUTH_SECRET` | `random-secret-string` | Session encryption |
-| `NEXTAUTH_URL` | `https://your-app.vercel.app` | Auth callback URL |
-| `NEXT_PUBLIC_GOOGLE_REDIRECT_URI` | `https://your-app.vercel.app/api/auth/google/callback` | Google redirect |
-
-### Optional Variables
-
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `NEXT_PUBLIC_LOG_LEVEL` | `info` | Logging verbosity |
-| `NEXT_PUBLIC_ENABLE_DB_LOGGING` | `true` | Write logs to database |
-| `NEXT_PUBLIC_APP_VERSION` | `1.0.0` | App version in logs |
+1. Go to: Project → Settings → Environment Variables
+2. Add/Edit variables
+3. Check **Production**, **Preview**, and **Development** environments
+4. **Redeploy** after changes (variables don't auto-update)
 
 ### Generating Secrets
 
-**NEXTAUTH_SECRET:**
 ```bash
+# Generate NEXTAUTH_SECRET
 openssl rand -base64 32
 ```
 
 ---
 
-## Database Setup
+## Database Migrations
 
-### Step 1: Run Migrations in Production
+### Running Migrations
 
-After first deployment, set up the database:
+1. **Push code** (including migration file)
+2. **Wait for deployment**
+3. **Run migration in production:**
+   - Go to Supabase Dashboard → SQL Editor
+   - Copy/paste migration SQL
+   - Execute
+4. **Verify:**
+   ```bash
+   curl https://life-dashboard-ri1t.vercel.app/api/health
+   ```
 
-1. Go to [Supabase Dashboard](https://supabase.com)
-2. Select your project
-3. Go to **SQL Editor**
-4. Run migrations in order:
-
-**Migration 1: Initial Setup**
-```sql
--- Run supabase-setup.sql
--- (Creates todos, grocery_items, google_tokens tables)
-```
-
-**Migration 2: Error Logging**
-```sql
--- Run supabase-migrations/001_error_logs.sql
--- (Creates error_logs table and policies)
-```
-
-### Step 2: Verify Tables
+### Migration Order
 
 ```sql
--- Check tables exist
-SELECT table_name FROM information_schema.tables
-WHERE table_schema = 'public';
+-- 1. Initial setup
+supabase-setup.sql
 
--- Expected tables:
--- - todos
--- - grocery_items
--- - google_tokens
--- - error_logs
-```
+-- 2. Error logging (Phase 1)
+supabase-migrations/001_error_logs.sql
 
-### Step 3: Test Connectivity
-
-Visit your health endpoint:
-```
-https://your-app.vercel.app/api/health
-```
-
-**Expected response:**
-```json
-{
-  "status": "healthy",
-  "services": {
-    "database": { "status": "up" }
-  }
-}
+-- Future migrations...
 ```
 
 ---
 
-## Post-Deployment
+## Initial Setup (One-Time)
 
-### Update Google OAuth
+### 1. Connect Vercel to GitHub
 
-After deployment, update Google Cloud Console:
+1. Go to [vercel.com](https://vercel.com)
+2. **Add New** → **Project**
+3. Import `mllivingston/life-dashboard`
+4. Configure:
+   - Framework: Next.js ✅ (auto-detected)
+   - Root Directory: `./`
+   - Build Command: `npm run build`
+
+### 2. Configure Environment Variables
+
+Add all variables listed above in Vercel Dashboard.
+
+### 3. Deploy
+
+Click **Deploy** → Wait 2-3 minutes.
+
+### 4. Run Database Migrations
+
+Run all migrations in Supabase SQL Editor (see order above).
+
+### 5. Configure Google OAuth
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com)
-2. Select your project
-3. **APIs & Services** → **Credentials**
-4. Click your OAuth 2.0 Client ID
-5. Under **Authorized redirect URIs**, add:
+2. APIs & Services → Credentials
+3. OAuth 2.0 Client ID → Add redirect URI:
    ```
    https://life-dashboard-ri1t.vercel.app/api/auth/google/callback
    ```
-6. Click **Save**
+4. Save
 
-### Test Production
+### 6. Test Production
 
-**Checklist:**
 - [ ] Visit production URL
-- [ ] Sign up/sign in works
-- [ ] Health endpoint returns healthy
-- [ ] Can connect Google Calendar
-- [ ] Todos work
-- [ ] Grocery list works
-- [ ] Check error logs in Supabase (should be empty or minimal)
-
-### Set Up Monitoring
-
-1. **Bookmark health endpoint:**
-   ```
-   https://your-app.vercel.app/api/health
-   ```
-
-2. **Set up UptimeRobot (optional):**
-   - Monitor health endpoint every 5 minutes
-   - Get alerts if it goes down
-
-3. **Check Vercel Analytics:**
-   - Project → Analytics
-   - Monitor traffic and performance
-
----
-
-## Updating Production
-
-### Automatic Deployment (Recommended)
-
-Vercel automatically deploys when you push to `main`:
-
-```bash
-# Make changes locally
-git add .
-git commit -m "feat: add new feature"
-
-# Push to GitHub
-git push origin main
-
-# Vercel automatically deploys (2-3 minutes)
-```
-
-**Check deployment:**
-1. Go to Vercel Dashboard → Deployments
-2. Wait for "Ready" status
-3. Test production URL
-
-### Manual Deployment (if needed)
-
-```bash
-# Using Vercel CLI
-vercel --prod
-
-# Or redeploy from dashboard
-# Vercel Dashboard → Deployments → ... → Redeploy
-```
-
-### Database Migrations
-
-When adding new migrations:
-
-1. **Push code** (includes migration file)
-2. **Wait for deployment**
-3. **Run migration** in production Supabase
-4. **Test** the new feature
-
-**Example:**
-```bash
-# 1. Code with migration file
-git add supabase-migrations/002_new_feature.sql
-git commit -m "feat: add new feature with migration"
-git push origin main
-
-# 2. Wait for Vercel deployment
-
-# 3. Run in production Supabase SQL Editor
-# Copy/paste 002_new_feature.sql
-
-# 4. Test production
-curl https://your-app.vercel.app/api/health
-```
+- [ ] Sign in works
+- [ ] Health endpoint shows "healthy"
+- [ ] Google Calendar connects
+- [ ] Todos and grocery list work
 
 ---
 
 ## Rollback
 
-### Rollback Deployment
+### Method 1: Vercel Dashboard (Fastest)
 
-If a deployment breaks production:
-
-**Method 1: Vercel Dashboard**
-1. Go to Deployments
+1. Go to Vercel → Deployments
 2. Find last working deployment
 3. Click **...** → **Promote to Production**
 
-**Method 2: Git Revert**
+### Method 2: Git Revert
+
 ```bash
-# Revert last commit
 git revert HEAD
 git push origin main
-
-# Vercel will auto-deploy the revert
+# Vercel auto-deploys the revert
 ```
 
-### Rollback Database
-
-**If migration breaks database:**
+### Database Rollback
 
 ```sql
--- Example: Rollback table creation
+-- Rollback table creation
 DROP TABLE IF EXISTS problem_table;
 
--- Or: Rollback column addition
+-- Rollback column addition  
 ALTER TABLE my_table DROP COLUMN problem_column;
 ```
 
-**Important:** Always test migrations locally first!
+**Important:** Always test migrations in development first!
 
 ---
 
@@ -355,19 +207,18 @@ ALTER TABLE my_table DROP COLUMN problem_column;
 
 ### Health Check
 
-**Endpoint:** `https://your-app.vercel.app/api/health`
+**Production:** https://life-dashboard-ri1t.vercel.app/api/health  
+**Auto-refresh:** Every 30 seconds  
 
-**What to monitor:**
+**Monitor:**
 - Overall status (healthy/degraded/down)
-- Database latency (< 100ms good)
+- Database latency
 - Google Calendar token status
 - System uptime
 
-**Auto-refresh:** Page refreshes every 30 seconds
-
 ### Error Logs
 
-**Check Supabase error_logs table:**
+Query the `error_logs` table in Supabase:
 
 ```sql
 -- Recent errors
@@ -376,43 +227,23 @@ WHERE created_at > NOW() - INTERVAL '1 hour'
 ORDER BY created_at DESC;
 
 -- Error rate
-SELECT COUNT(*) as error_count
-FROM error_logs
+SELECT COUNT(*) FROM error_logs
 WHERE created_at > NOW() - INTERVAL '24 hours';
 
 -- Errors by service
 SELECT service, COUNT(*) as count
 FROM error_logs
 WHERE created_at > NOW() - INTERVAL '24 hours'
-GROUP BY service
-ORDER BY count DESC;
+GROUP BY service;
 ```
 
 ### Vercel Analytics
 
-**Monitor:**
+Monitor in Vercel Dashboard → Analytics:
 - Page views
-- API call count
+- API calls
 - Error rate
 - Response times
-
-**Access:** Vercel Dashboard → Project → Analytics
-
-### Set Up Alerts
-
-**Option 1: Email Alerts (Vercel)**
-- Configure in Vercel Dashboard
-- Get notified of failed deployments
-
-**Option 2: UptimeRobot (Free)**
-- Monitor health endpoint
-- Email/SMS when down
-- 50 monitors free tier
-
-**Option 3: Custom (Future)**
-- Query error_logs table
-- Send email if error rate spikes
-- Implement in Phase 4
 
 ---
 
@@ -420,212 +251,126 @@ ORDER BY count DESC;
 
 ### Deployment Fails
 
-**Error:** "Build failed"
-
-**Debug steps:**
-1. Check Vercel build logs (click deployment → View Build Logs)
-2. Look for error message
-3. Common issues:
+**Check:**
+1. Vercel build logs (click deployment → Build Logs)
+2. Common issues:
    - Missing environment variable
-   - Syntax error in code
+   - Syntax error
    - Missing dependency
 
-**Solution:**
-- Fix the issue locally
-- Test with `npm run build`
-- Push fix to GitHub
+**Fix:**
+```bash
+# Test locally first
+npm run build
 
----
+# Then push fix
+git push origin main
+```
 
 ### Health Endpoint Shows "Down"
 
-**Symptoms:** `/api/health` returns 503
+**Debug:**
+1. Which service is down?
+2. Check database migrations ran
+3. Verify environment variables
+4. Check Supabase project status
 
-**Debug steps:**
-1. Check which service is down
-2. Common causes:
-   - Database migration not run
-   - Environment variable missing
-   - Supabase project paused
+### Google OAuth Error
 
-**Solutions:**
-- Run database migrations
-- Check environment variables in Vercel
-- Check Supabase project status
+**Error:** `redirect_uri_mismatch`
 
----
-
-### Google OAuth Not Working
-
-**Error:** "redirect_uri_mismatch"
-
-**Debug steps:**
-1. Check Google Cloud Console redirect URIs
-2. Check NEXT_PUBLIC_GOOGLE_REDIRECT_URI in Vercel
-
-**Solution:**
-Ensure they match exactly:
+**Fix:**
+Ensure exact match in Google Cloud Console:
 ```
-Production URL: https://life-dashboard-ri1t.vercel.app/api/auth/google/callback
-Google Console: https://life-dashboard-ri1t.vercel.app/api/auth/google/callback
+https://life-dashboard-ri1t.vercel.app/api/auth/google/callback
 ```
-
-No trailing slash, must match exactly!
-
----
+No trailing slash!
 
 ### Calendar Not Loading
 
-**Symptoms:** "Failed to fetch calendar events"
-
-**Debug steps:**
-1. Check health endpoint - token status?
+**Debug:**
+1. Check health endpoint - token expired?
 2. Check error_logs table
-3. Check Google API quotas
-
-**Solutions:**
-- Reconnect Google Calendar
-- Check Google Cloud Console API is enabled
-- Check quota limits
-
----
+3. Try reconnecting Google Calendar
+4. Verify Google API enabled
 
 ### Environment Variable Not Working
 
-**Symptoms:** Feature works locally, not in production
-
-**Debug steps:**
-1. Check Vercel environment variables are set
-2. Check variable name (typos?)
-3. Check environments (Production checked?)
-
 **Solution:**
-1. Verify variables in Vercel Dashboard
-2. **Redeploy** after adding variables (important!)
-3. Check with:
+1. Verify in Vercel Dashboard
+2. Check all environments are selected
+3. **Redeploy** (important!)
+4. Verify:
 ```javascript
-// In API route
 console.log(process.env.YOUR_VARIABLE)
 ```
 
 ---
 
-## Best Practices
-
-### Pre-Deployment Checklist
-
-Before every deployment:
+## Pre-Deployment Checklist
 
 - [ ] Code tested locally
 - [ ] Tests pass (if applicable)
 - [ ] Health endpoint shows healthy
 - [ ] No console errors
-- [ ] Migration files ready (if needed)
+- [ ] Migration files ready
 - [ ] Environment variables documented
-- [ ] Changelog updated
 
-### During Deployment
+## Post-Deployment Checklist
 
-- [ ] Monitor Vercel deployment status
-- [ ] Check build logs for warnings
-- [ ] Wait for "Ready" status
-
-### Post-Deployment
-
-- [ ] Visit production URL
-- [ ] Run through test scenarios
-- [ ] Check health endpoint
-- [ ] Monitor error logs for 10 minutes
+- [ ] Production URL loads
+- [ ] Health endpoint shows healthy
 - [ ] Test critical user flows
+- [ ] Monitor error logs for 10 minutes
+- [ ] Verify migrations ran (if applicable)
+
+---
+
+## Best Practices
 
 ### Deployment Timing
 
-**Best times to deploy:**
-- ✅ Monday-Thursday (easy to fix if issues)
-- ✅ Morning/afternoon (team available)
+**Best times:**
+- ✅ Monday-Thursday
+- ✅ Morning/afternoon
 - ✅ After testing
 
 **Avoid:**
-- ❌ Friday evening (weekend issues)
-- ❌ Late night (no one to fix issues)
-- ❌ Before vacation (can't monitor)
+- ❌ Friday evening
+- ❌ Late night
+- ❌ Before vacation
+
+### Feature Branch Strategy
+
+**Always use feature branches for:**
+- New features
+- Bug fixes
+- Refactoring
+- Database changes
+
+**May push directly to main for:**
+- Documentation updates
+- Typo fixes
+- Emergency hotfixes
 
 ---
 
-## Deployment Checklist by Phase
-
-### Phase 1 Deployment ✅
-
-- [x] Deploy code to Vercel
-- [x] Add environment variables
-- [x] Run database migrations
-- [x] Update Google OAuth redirect URIs
-- [x] Test production
-- [x] Monitor health endpoint
-
-### Phase 2 Deployment (Future)
-
-- [ ] Deploy retry logic code
-- [ ] No database changes needed
-- [ ] Update health checks
-- [ ] Test token refresh flow
-
-### Phase 3 Deployment (Future)
-
-- [ ] Deploy multi-calendar code
-- [ ] Run new migrations (calendar_connections table)
-- [ ] Add Outlook OAuth credentials
-- [ ] Update health checks
-- [ ] Test both calendars
-
-### Phase 4 Deployment (Future)
-
-- [ ] Deploy dashboard UI
-- [ ] Add alerting service credentials
-- [ ] Configure email/Slack webhooks
-- [ ] Test monitoring
-
----
-
-## Production URLs
-
-**Current Production:**
-```
-App: https://life-dashboard-ri1t.vercel.app
-Health: https://life-dashboard-ri1t.vercel.app/api/health
-GitHub: https://github.com/mllivingston/life-dashboard
-```
-
-**Supabase:**
-```
-Dashboard: https://supabase.com/dashboard/project/uzygfzjkxffmcesliwsb
-API: https://uzygfzjkxffmcesliwsb.supabase.co
-```
+## Support Resources
 
 **Vercel:**
-```
-Dashboard: https://vercel.com/mllivingstons-projects
-```
+- [Documentation](https://vercel.com/docs)
+- [Support](https://vercel.com/support)
+
+**Supabase:**
+- [Docs](https://supabase.com/docs)  
+- [Support](https://supabase.com/support)
+
+**Internal:**
+- [WORKFLOW.md](./WORKFLOW.md) - Detailed git/deployment workflow
+- [ARCHITECTURE.md](./ARCHITECTURE.md) - System design
+- [DEVELOPMENT.md](./DEVELOPMENT.md) - Local development
+- [ROADMAP.md](./ROADMAP.md) - What's next
 
 ---
 
-## Support
-
-**Vercel Issues:**
-- [Vercel Documentation](https://vercel.com/docs)
-- [Vercel Support](https://vercel.com/support)
-
-**Supabase Issues:**
-- [Supabase Docs](https://supabase.com/docs)
-- [Supabase Support](https://supabase.com/support)
-
-**Application Issues:**
-- Check ARCHITECTURE.md
-- Check DEVELOPMENT.md
-- Check error_logs table
-- Review health endpoint
-
----
-
-_Last updated: October 29, 2025_  
-_Version: 1.1.0_
+_Last updated: October 30, 2025_
