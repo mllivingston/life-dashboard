@@ -1,66 +1,47 @@
 # Life Dashboard - Architecture
 
-**Last Updated:** October 29, 2025  
+**Last Updated:** October 30, 2025  
 **Current Version:** 1.1.0
 
----
-
-## 📋 Table of Contents
-
-1. [System Overview](#system-overview)
-2. [Technology Stack](#technology-stack)
-3. [Database Schema](#database-schema)
-4. [Error Handling System](#error-handling-system)
-5. [Authentication & Authorization](#authentication--authorization)
-6. [API Design](#api-design)
-7. [Design Decisions](#design-decisions)
+This document describes the technical architecture and design decisions.
 
 ---
 
 ## System Overview
 
-Life Dashboard is a personal productivity application that integrates:
-- **Google Calendar** - View and manage calendar events
-- **Todo Lists** - Track tasks and to-dos
-- **Grocery Lists** - Manage shopping items
+Life Dashboard is a personal productivity application integrating Google Calendar, todos, and grocery lists.
 
 ### Architecture Pattern
-- **Frontend:** Next.js 14 (React Server Components + Client Components)
-- **Backend:** Next.js API Routes (serverless functions)
-- **Database:** Supabase (PostgreSQL)
-- **Authentication:** Supabase Auth
-- **Deployment:** Vercel
 
-### High-Level Architecture
+**Frontend:** Next.js 14 (React Server Components + Client Components)  
+**Backend:** Next.js API Routes (serverless)  
+**Database:** Supabase (PostgreSQL)  
+**Authentication:** Supabase Auth  
+**Deployment:** Vercel
+
+### High-Level Diagram
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                   User Browser                      │
-└────────────┬────────────────────────────────────────┘
-             │
-             ▼
-┌─────────────────────────────────────────────────────┐
-│              Next.js Frontend (Vercel)              │
-│  ┌──────────────┐  ┌──────────────┐  ┌───────────┐ │
-│  │   Calendar   │  │   TodoList   │  │  Grocery  │ │
-│  │  Component   │  │  Component   │  │Component  │ │
-│  └──────────────┘  └──────────────┘  └───────────┘ │
-└────────────┬────────────────────────────────────────┘
-             │
-             ▼
-┌─────────────────────────────────────────────────────┐
-│           Next.js API Routes (Vercel)               │
-│  ┌──────────┐  ┌──────────┐  ┌──────────────────┐  │
-│  │/api/     │  │/api/     │  │/api/auth/google/ │  │
-│  │calendar  │  │health    │  │                  │  │
-│  └──────────┘  └──────────┘  └──────────────────┘  │
-└────────┬────────────────────┬────────────────────────┘
-         │                    │
-         ▼                    ▼
-┌────────────────┐   ┌─────────────────────┐
-│ Google Calendar│   │   Supabase          │
-│      API       │   │  (PostgreSQL + Auth)│
-└────────────────┘   └─────────────────────┘
+┌─────────────────────────────────────┐
+│         Browser (User)                  │
+└────────────────┬─────────────────────┘
+                 │
+┌────────────────┴─────────────────────┐
+│      Next.js (Vercel)                  │
+│  ┌──────────────────────────────┐  │
+│  │ Calendar | Todos | Grocery  │  │
+│  └───────────┬─────────────────┘  │
+│             │ API Routes           │
+└─────────────┬─┴─────┬──────────────┘
+             │       │
+    ┌────────┴──┐    │
+    │  Google     │    │
+    │  Calendar   │    │
+    └───────────┘    │
+             ┌─────────┴────────┐
+             │   Supabase          │
+             │ (PostgreSQL + Auth)│
+             └──────────────────┘
 ```
 
 ---
@@ -71,26 +52,24 @@ Life Dashboard is a personal productivity application that integrates:
 - **Framework:** Next.js 14.2.3
 - **Language:** JavaScript (ES6+)
 - **Styling:** Tailwind CSS
-- **State Management:** React Hooks (useState, useEffect)
-- **HTTP Client:** Native fetch API
+- **State:** React Hooks
 
 ### Backend
-- **Runtime:** Node.js (serverless functions)
+- **Runtime:** Node.js (serverless)
 - **Framework:** Next.js API Routes
-- **Authentication:** NextAuth.js + Supabase Auth
-- **External APIs:** Google Calendar API
+- **Auth:** NextAuth.js + Supabase Auth
+- **APIs:** Google Calendar API
 
 ### Database
 - **Provider:** Supabase
-- **Database:** PostgreSQL 15
-- **ORM:** Supabase JavaScript Client
-- **Row Level Security:** Enabled on all tables
+- **Engine:** PostgreSQL 15
+- **Client:** Supabase JavaScript Client
+- **Security:** Row Level Security (RLS)
 
 ### Infrastructure
-- **Hosting:** Vercel (frontend + API routes)
-- **Database Hosting:** Supabase Cloud
-- **Domain:** Vercel auto-generated (or custom domain)
-- **SSL:** Automatic via Vercel
+- **Hosting:** Vercel
+- **Database:** Supabase Cloud
+- **SSL:** Automatic (Vercel)
 
 ---
 
@@ -98,465 +77,236 @@ Life Dashboard is a personal productivity application that integrates:
 
 ### Core Tables
 
-#### `todos`
+**`todos`** - User to-do items
 ```sql
 CREATE TABLE todos (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users NOT NULL,
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES auth.users,
   task TEXT NOT NULL,
   completed BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 ```
 
-**Purpose:** Store user to-do list items  
-**RLS:** Users can only access their own todos
-
-#### `grocery_items`
+**`grocery_items`** - Shopping list
 ```sql
 CREATE TABLE grocery_items (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users NOT NULL,
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES auth.users,
   item TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 ```
 
-**Purpose:** Store grocery shopping list items  
-**RLS:** Users can only access their own items
-
-#### `google_tokens`
+**`google_tokens`** - OAuth tokens
 ```sql
 CREATE TABLE google_tokens (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users UNIQUE NOT NULL,
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES auth.users UNIQUE,
   access_token TEXT NOT NULL,
   refresh_token TEXT NOT NULL,
-  expiry_date TIMESTAMPTZ NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  expiry_date BIGINT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 ```
 
-**Purpose:** Store Google OAuth tokens for calendar access  
-**RLS:** Users can only access their own tokens  
-**Security:** Tokens are encrypted at rest by Supabase
+**`error_logs`** - Error tracking
+```sql
+CREATE TABLE error_logs (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES auth.users,
+  level TEXT,
+  service TEXT,
+  message TEXT NOT NULL,
+  stack_trace TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  resolved BOOLEAN DEFAULT FALSE
+);
+```
+
+**Security:** All tables have RLS policies - users can only access their own data.
 
 ---
 
 ## Error Handling System
 
-*Added: Phase 1 - October 29, 2025*
-
-### Overview
-
-The error handling system provides comprehensive error tracking, graceful degradation, and real-time monitoring. It consists of four main components working together to ensure the application remains resilient and observable.
-
-### Architecture
-
-```
-┌──────────────────────────────────────────────────────┐
-│                  Application Layer                    │
-│                                                        │
-│  ┌────────────┐  ┌────────────┐  ┌────────────┐     │
-│  │ Calendar   │  │  TodoList  │  │  Grocery   │     │
-│  │ Component  │  │ Component  │  │ Component  │     │
-│  └─────┬──────┘  └─────┬──────┘  └─────┬──────┘     │
-│        │                │                │            │
-│        ▼                ▼                ▼            │
-│  ┌────────────────────────────────────────────┐     │
-│  │       Error Boundary (Component-Level)     │     │
-│  │  - Catches React errors                    │     │
-│  │  - Shows fallback UI                       │     │
-│  │  - Logs to logger                          │     │
-│  └─────────────────┬──────────────────────────┘     │
-│                    │                                  │
-└────────────────────┼──────────────────────────────────┘
-                     │
-                     ▼
-┌──────────────────────────────────────────────────────┐
-│                  Logger Utility                       │
-│  - Structured logging (error, warn, info, debug)    │
-│  - Automatic context enrichment                      │
-│  - Writes to console (dev) & database (prod)        │
-│  - Request tracing with unique IDs                   │
-└─────────────────────┬────────────────────────────────┘
-                      │
-                      ▼
-┌──────────────────────────────────────────────────────┐
-│              Error Logs Database                      │
-│  Table: error_logs                                    │
-│  - Full error context                                 │
-│  - User information                                   │
-│  - Browser context                                    │
-│  - Request metadata                                   │
-└──────────────────────────────────────────────────────┘
-```
-
 ### Components
 
-#### 1. Error Logs Database (`error_logs` table)
+1. **Error Logs Database** (`error_logs` table)
+   - Structured error storage
+   - User context and stack traces
+   - Resolution tracking
 
-**Location:** `supabase-migrations/001_error_logs.sql`
+2. **Logger Utility** (`lib/logger.js`)
+   - 4 log levels: error, warn, info, debug
+   - Automatic context enrichment
+   - Console + database output
 
-**Schema:**
-```sql
-CREATE TABLE error_logs (
-  id UUID PRIMARY KEY,
-  created_at TIMESTAMPTZ,
-  user_id UUID REFERENCES auth.users,
-  session_id TEXT,
-  level TEXT, -- 'error', 'warn', 'info', 'debug'
-  service TEXT, -- 'google-calendar', 'todos', etc.
-  error_type TEXT, -- 'API_ERROR', 'TOKEN_REFRESH_FAILED', etc.
-  message TEXT NOT NULL,
-  stack_trace TEXT,
-  error_code TEXT,
-  request_context JSONB, -- Browser info, URL, etc.
-  metadata JSONB, -- Additional context
-  resolved BOOLEAN DEFAULT FALSE,
-  resolved_at TIMESTAMPTZ,
-  resolved_by UUID,
-  resolution_notes TEXT
-);
+3. **Error Boundaries** (`components/ErrorBoundary.js`)
+   - Component-level isolation
+   - Fallback UI with retry
+   - Automatic error logging
+
+4. **Health Check** (`app/api/health/route.js`)
+   - Database connectivity
+   - Auth service status
+   - Token validity
+   - System resources
+
+### Error Flow
+
 ```
-
-**Indexes:**
-- `idx_error_logs_user_created` - Fast user-specific queries
-- `idx_error_logs_service_level` - Service health queries
-- `idx_error_logs_unresolved` - Find unresolved errors
-- `idx_error_logs_type` - Query by error type
-- `idx_error_logs_message_search` - Full-text search
-
-**Helper Functions:**
-- `cleanup_old_error_logs(days)` - Remove old resolved errors
-- `get_error_stats(interval)` - Get error statistics
-
-**RLS Policies:**
-- Users can view their own errors
-- Service role can insert errors
-- Users can mark their errors as resolved
-
-#### 2. Logger Utility (`lib/logger.js`)
-
-**Purpose:** Centralized logging with automatic context enrichment
-
-**Features:**
-- **Log Levels:** error, warn, info, debug
-- **Context Enrichment:** Automatically adds user ID, session ID, browser info
-- **Dual Output:** Console (always) + Database (errors & warnings)
-- **Request Tracing:** Unique request IDs for end-to-end tracing
-- **Service-Specific Loggers:** Create child loggers per service
-
-**API:**
-```javascript
-import logger from '@/lib/logger'
-
-// Basic logging
-logger.error('Failed to fetch calendar', { service: 'calendar' })
-logger.warn('Rate limit approaching', { remaining: 10 })
-logger.info('User logged in', { userId: '123' })
-logger.debug('Request details', { headers: {...} })
-
-// Service-specific logger
-const calendarLogger = logger.child('google-calendar')
-calendarLogger.error('Token expired')
-
-// Error logging helper
-import { logError } from '@/lib/logger'
-try {
-  await fetchData()
-} catch (error) {
-  logError(error, { service: 'calendar', context: 'fetchEvents' })
-}
+Error Occurs → Error Boundary Catches → Logger Records → Database Stores
+     │                                                           │
+     └──────── Fallback UI Shown ─────────────────────┘
 ```
-
-**Configuration:**
-- `NEXT_PUBLIC_LOG_LEVEL` - Set minimum log level (default: 'info')
-- `NEXT_PUBLIC_ENABLE_DB_LOGGING` - Enable/disable database logging (default: true)
-
-#### 3. Error Boundaries (`components/ErrorBoundary.js`)
-
-**Purpose:** Catch React errors and prevent full app crashes
-
-**Features:**
-- **Component Isolation:** One component fails, others keep working
-- **Fallback UI:** Show error message instead of white screen
-- **Error Loop Detection:** Detect and handle repeated crashes
-- **Automatic Logging:** Logs all caught errors to logger utility
-- **Reset Capability:** Allow users to retry after error
-
-**Usage:**
-```javascript
-import ErrorBoundary from '@/components/ErrorBoundary'
-
-<ErrorBoundary serviceName="Calendar">
-  <Calendar />
-</ErrorBoundary>
-```
-
-**Specialized Fallbacks:**
-- `CalendarErrorFallback` - Calendar-specific error UI
-- `ListErrorFallback` - Generic list error UI
-
-**Error States:**
-- **Normal Error:** Show fallback with retry button
-- **Error Loop (3+ crashes):** Show critical error, suggest refresh
-
-#### 4. Health Check Endpoint (`app/api/health/route.js`)
-
-**Purpose:** Monitor system health in real-time
-
-**Endpoint:** `GET /api/health`
-
-**Checks:**
-- Database connectivity (query latency)
-- Authentication service status
-- Google Calendar token validity
-- System resources (memory, uptime)
-
-**Response Format:**
-```json
-{
-  "status": "healthy" | "degraded" | "down",
-  "timestamp": "2025-10-29T...",
-  "responseTime": 123,
-  "services": {
-    "database": { "status": "up", "latency": 15 },
-    "authentication": { "status": "up" },
-    "googleCalendar": { "status": "up", "expiresInMinutes": 45 },
-    "system": { "status": "up", "uptime": 3600 }
-  }
-}
-```
-
-**Content Negotiation:**
-- **Browser:** Returns beautiful HTML dashboard with auto-refresh
-- **API Client:** Returns JSON for monitoring tools
-
-**HTTP Status Codes:**
-- `200` - Healthy or degraded
-- `503` - System down
 
 ---
 
 ## Authentication & Authorization
 
-### Authentication Flow
-
-1. **User Registration/Login:**
-   - Handled by Supabase Auth
-   - Email/password authentication
-   - Session stored in HTTP-only cookies
-
-2. **Google Calendar OAuth:**
-   - Separate OAuth flow for calendar access
-   - Tokens stored in `google_tokens` table
-   - Automatic token refresh (to be implemented in Phase 2)
+### Authentication
+- **Method:** Email/password (Supabase Auth)
+- **Sessions:** HTTP-only cookies
+- **Google OAuth:** Separate flow for calendar access
 
 ### Authorization
+- **Row Level Security (RLS)** on all user tables
+- Database-level enforcement
+- Automatic query filtering
 
-**Row Level Security (RLS):**
-All user data tables use RLS policies:
+**Example RLS Policy:**
 ```sql
--- Example: todos table
-CREATE POLICY "Users can only access their own todos"
-ON todos
-FOR ALL
+CREATE POLICY "Users access own data"
+ON todos FOR ALL
 USING (auth.uid() = user_id);
 ```
-
-**Benefits:**
-- Database-level security (can't bypass in code)
-- Automatic filtering of queries
-- Protection against SQL injection
 
 ---
 
 ## API Design
 
-### API Routes Structure
+### Routes Structure
 
 ```
 app/api/
 ├── auth/
 │   └── google/
-│       ├── route.js              # Initiate OAuth
-│       └── callback/
-│           └── route.js          # OAuth callback
-├── calendar/
-│   └── route.js                  # Fetch calendar events
-└── health/
-    └── route.js                  # System health check
+│       ├── route.js              # OAuth init
+│       └── callback/route.js     # OAuth callback
+├── calendar/route.js           # Fetch events
+└── health/route.js             # System health
 ```
 
-### API Conventions
+### Error Responses
 
-**Error Responses:**
 ```json
 {
-  "error": "Human-readable error message",
+  "error": "Human-readable message",
   "code": "ERROR_CODE",
-  "details": { "additionalContext": "..." }
+  "details": {}
 }
 ```
 
-**Success Responses:**
+### Success Responses
+
 ```json
 {
-  "data": { "result": "..." },
+  "data": {},
   "meta": { "timestamp": "...", "version": "1.0.0" }
 }
 ```
 
-### Authentication
-
-**Client-Side:**
-```javascript
-import { createClient } from '@/lib/supabase/client'
-const supabase = createClient()
-const { data: { user } } = await supabase.auth.getUser()
-```
-
-**Server-Side:**
-```javascript
-import { createServerSupabaseClient } from '@/lib/supabase/server'
-const supabase = await createServerSupabaseClient()
-const { data: { user } } = await supabase.auth.getUser()
-```
-
 ---
 
-## Design Decisions
+## Key Design Decisions
 
 ### Why Next.js?
 
 **Pros:**
-- Server-side rendering for better performance
-- API routes eliminate need for separate backend
-- File-based routing (simple to understand)
-- Great developer experience
+- Server-side rendering
+- API routes (no separate backend)
+- File-based routing
+- Great DX
 - Easy Vercel deployment
 
-**Cons:**
-- Learning curve for SSR/RSC concepts
-- Less flexibility than separate backend
-
-**Decision:** Chose Next.js for rapid development and integrated frontend/backend.
+**Decision:** Rapid development, integrated frontend/backend
 
 ### Why Supabase?
 
 **Pros:**
 - PostgreSQL (mature, reliable)
-- Built-in authentication
-- Row-level security (database-level auth)
-- Real-time subscriptions (future use)
-- Free tier generous for MVP
+- Built-in auth
+- Row-level security
+- Real-time subscriptions
+- Generous free tier
 
-**Cons:**
-- Vendor lock-in
-- Less control than self-hosted
+**Decision:** Speed to market, built-in features
 
-**Decision:** Chose Supabase for speed to market and built-in features.
+### Why Error Boundaries?
 
-### Why Error Boundaries Over Global Error Handler?
+**Pros:**
+- Component isolation
+- Better UX (partial functionality)
+- Specific error messages
+- Easier debugging
 
-**Reasoning:**
-- **Isolation:** One component fails, others keep working
-- **Better UX:** Show specific error messages per component
-- **Easier Debugging:** Know exactly which component failed
-- **Graceful Degradation:** App remains partially functional
+**Decision:** Better UX, graceful degradation
 
-**Tradeoff:** More code (wrap each component) vs. better UX
-
-**Decision:** Use error boundaries for better user experience and resilience.
-
-### Why Database Logging Over External Service (Sentry)?
+### Why Database Logging?
 
 **Phase 1 Decision:**
-- **No additional cost:** Use existing database
-- **Full control:** Own all error data
-- **Easy queries:** SQL for analysis
-- **Simple setup:** No new accounts/APIs
+- No additional cost
+- Full data control
+- Easy SQL queries
+- Simple setup
 
-**Future Consideration (Phase 4):**
-- May add Sentry for better alerting and dashboards
-- Can run both (database + Sentry) in parallel
-- Database logs remain as source of truth
+**Future:** May add external service (Sentry) for alerting
 
 ---
 
-## Future Architecture Changes
-
-### Phase 2: Resilience (Planned)
-
-**Additions:**
-- Token refresh mechanism
-- Retry logic with exponential backoff
-- Timeout handling
-- Circuit breaker for APIs
-
-**Impact:** Minimal - adds middleware layer, no schema changes
-
-### Phase 3: Multi-Calendar (Planned)
-
-**Additions:**
-- Calendar service abstraction interface
-- Support for Outlook Calendar
-- Unified calendar view
-
-**Impact:** Moderate - new tables for additional calendars, refactor existing calendar code
-
-### Phase 4: Observability (Planned)
-
-**Additions:**
-- Error dashboard UI
-- Alerting system
-- Request tracing
-- Performance monitoring
-
-**Impact:** Moderate - new UI components, possibly external service integration
-
----
-
-## Performance Considerations
+## Performance
 
 ### Current State
-- **Database queries:** Indexed, should scale to 10k+ users
-- **API calls:** Each page load makes 1-3 API calls
-- **Bundle size:** ~200KB (acceptable for SPA)
+- **Database:** Indexed, scales to 10k+ users
+- **API:** 1-3 calls per page load
+- **Bundle:** ~200KB (acceptable)
 
 ### Known Bottlenecks
-1. **Google Calendar API:** Rate limited (10,000 requests/day)
-2. **No caching:** Every page load fetches fresh data
-3. **No pagination:** Loads all todos/groceries at once
+1. Google Calendar API (rate limited)
+2. No caching
+3. No pagination
 
-### Future Optimizations (If Needed)
-- Add Redis caching layer
-- Implement pagination for lists
-- Add service worker for offline support
+### Future Optimizations
+- Redis caching
+- List pagination
+- Service worker for offline
 
 ---
 
-## Security Considerations
+## Security
 
-### Current Security Measures
-1. **RLS policies:** All user data protected at database level
-2. **HTTPS:** Enforced by Vercel
-3. **HTTP-only cookies:** Session tokens not accessible to JS
-4. **OAuth tokens:** Encrypted at rest by Supabase
-5. **Environment variables:** Secrets not in code
+### Current Measures
+- RLS policies (database-level)
+- HTTPS enforced
+- HTTP-only cookies
+- Encrypted tokens (Supabase)
+- Secrets in environment variables
 
-### Known Security Gaps (To Address)
-1. **No rate limiting:** Could be abused
-2. **No CSRF protection:** Using API routes (less concern)
-3. **Google token refresh:** Manual (user must reconnect)
+### Known Gaps
+- No rate limiting
+- Manual token refresh (partially fixed)
 
 ### Security Roadmap
-- **Phase 2:** Automatic token refresh
-- **Phase 4:** Add rate limiting middleware
-- **Future:** Add 2FA support
+- Automatic token refresh ✅ (Phase 1)
+- Rate limiting (Phase 2)
+- 2FA support (future)
+
+---
+
+## What's Next?
+
+**See [ROADMAP.md](./ROADMAP.md) for planned features and phases.**
 
 ---
 
