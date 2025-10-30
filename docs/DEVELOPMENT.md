@@ -1,19 +1,6 @@
 # Development Guide
 
-This guide covers how to develop, test, and debug Life Dashboard.
-
----
-
-## 📋 Table of Contents
-
-1. [Getting Started](#getting-started)
-2. [Development Workflow](#development-workflow)
-3. [Testing](#testing)
-4. [Debugging](#debugging)
-5. [Code Style](#code-style)
-6. [Git Workflow](#git-workflow)
-7. [Common Tasks](#common-tasks)
-8. [Troubleshooting](#troubleshooting)
+How to develop, test, and debug Life Dashboard locally.
 
 ---
 
@@ -21,138 +8,85 @@ This guide covers how to develop, test, and debug Life Dashboard.
 
 ### Prerequisites
 
-- Node.js 18+ installed
-- npm or yarn package manager
+- Node.js 18+
+- npm or yarn
 - Supabase account
-- Google Cloud Console account (for Calendar API)
-- Code editor (VS Code, Cursor, etc.)
+- Google Cloud Console account
+- Code editor
 
 ### Initial Setup
 
-1. **Clone the repository:**
+1. **Clone:**
 ```bash
 git clone https://github.com/mllivingston/life-dashboard.git
 cd life-dashboard
 ```
 
-2. **Install dependencies:**
+2. **Install:**
 ```bash
 npm install
 ```
 
-3. **Set up environment variables:**
+3. **Environment:**
 ```bash
 cp .env.example .env.local
 ```
 
-Edit `.env.local` with your credentials:
+Edit `.env.local`:
 ```bash
 # Supabase
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+NEXT_PUBLIC_SUPABASE_URL=your_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_key
 
 # Google OAuth
 GOOGLE_CLIENT_ID=your_client_id
-GOOGLE_CLIENT_SECRET=your_client_secret
+GOOGLE_CLIENT_SECRET=your_secret
 NEXT_PUBLIC_GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
 
 # NextAuth
-NEXTAUTH_SECRET=your_nextauth_secret
+NEXTAUTH_SECRET=generate_with_openssl
 NEXTAUTH_URL=http://localhost:3000
 
-# Optional: Logging
+# Logging
 NEXT_PUBLIC_LOG_LEVEL=debug
-NEXT_PUBLIC_ENABLE_DB_LOGGING=true
 ```
 
-4. **Set up database:**
-```bash
-# Run migrations in Supabase SQL Editor
-# Execute files in order:
-# 1. supabase-setup.sql
-# 2. supabase-migrations/001_error_logs.sql
-```
+4. **Database:**
+Run migrations in Supabase SQL Editor:
+- `supabase-setup.sql`
+- `supabase-migrations/001_error_logs.sql`
 
-5. **Run development server:**
+5. **Run:**
 ```bash
 npm run dev
 ```
 
-6. **Open browser:**
-```
-http://localhost:3000
-```
+6. **Open:** http://localhost:3000
 
 ---
 
 ## Development Workflow
 
-### Daily Development Cycle
+See [WORKFLOW.md](./WORKFLOW.md) for detailed git and deployment workflow.
 
-1. **Pull latest changes:**
+### Quick Guide
+
 ```bash
+# Pull latest
 git pull origin main
-npm install  # In case dependencies changed
-```
 
-2. **Create feature branch:**
-```bash
-git checkout -b feature/your-feature-name
-```
+# Create feature branch
+git checkout -b feature/my-feature
 
-3. **Make changes:**
-- Edit code
-- Test locally
-- Check for errors
-
-4. **Commit changes:**
-```bash
+# Make changes, test, commit
 git add .
-git commit -m "feat: description of changes"
+git commit -m "feat: description"
+
+# Push to create preview deployment
+git push origin feature/my-feature
+
+# Test on preview URL, then merge PR
 ```
-
-5. **Push and deploy:**
-```bash
-git push origin feature/your-feature-name
-# Vercel will auto-deploy preview
-```
-
-6. **Merge to main:**
-```bash
-git checkout main
-git merge feature/your-feature-name
-git push origin main
-# Vercel will auto-deploy to production
-```
-
-### Task Sizing
-
-Use this framework for estimating work:
-
-| Size | Duration | Use For |
-|------|----------|---------|
-| 🟢 Small | < 10 min | Quick fixes, single file changes |
-| 🟡 Medium | 10-45 min | Component updates, small features |
-| 🟠 Large | 45-90 min | Full features, multiple files |
-| 🔴 Extra Large | > 90 min | Major features, architecture changes |
-
-### Before Starting Work
-
-1. **Review documentation:**
-   - Check ARCHITECTURE.md for system design
-   - Check CHANGELOG.md for recent changes
-   - Read relevant code comments
-
-2. **Understand the task:**
-   - What's the goal?
-   - Which files will change?
-   - Are there dependencies?
-   - What's the test plan?
-
-3. **Estimate time:**
-   - Use sizing framework
-   - Add 20% buffer for unknowns
-   - Track actual time vs estimate
 
 ---
 
@@ -160,75 +94,40 @@ Use this framework for estimating work:
 
 ### Manual Testing Checklist
 
-Before committing code, test:
-
-**✅ Core Functionality:**
+**Core Functionality:**
 - [ ] App loads without errors
-- [ ] Can sign in/sign up
+- [ ] Sign in/sign up works
 - [ ] Calendar loads events
-- [ ] Can add/delete todos
-- [ ] Can add/delete grocery items
+- [ ] Add/delete todos
+- [ ] Add/delete grocery items
 - [ ] Sign out works
 
-**✅ Error Handling:**
+**Error Handling:**
 - [ ] Health endpoint shows status
-- [ ] Error logs appear in Supabase
-- [ ] Error boundaries catch errors
+- [ ] Error logs in Supabase
+- [ ] Error boundaries work
 - [ ] Components fail independently
 
-**✅ Responsive Design:**
-- [ ] Works on mobile (375px width)
-- [ ] Works on tablet (768px width)
-- [ ] Works on desktop (1440px width)
-
-**✅ Browser Testing:**
-- [ ] Chrome (primary)
-- [ ] Safari (MacOS users)
-- [ ] Firefox (optional)
+**Responsive:**
+- [ ] Mobile (375px)
+- [ ] Tablet (768px)
+- [ ] Desktop (1440px)
 
 ### Testing Health Check
 
 ```bash
-# Test health endpoint
 curl http://localhost:3000/api/health | jq
-
-# Expected: status "healthy"
-```
-
-### Testing Logger
-
-```javascript
-// In browser console
-import logger from '@/lib/logger'
-logger.error('Test error', { test: true })
-
-// Check Supabase error_logs table
 ```
 
 ### Testing Error Boundaries
 
-1. **Add intentional error:**
+Add test error:
 ```javascript
-// In Calendar.js, top of component
-if (true) throw new Error('TEST ERROR BOUNDARY')
+// In Calendar.js
+if (true) throw new Error('TEST ERROR')
 ```
 
-2. **Refresh page**
-3. **Expected:** Calendar shows error UI, todos/groceries still work
-4. **Remove test code**
-
-### Database Testing
-
-```sql
--- Check error logs
-SELECT * FROM error_logs ORDER BY created_at DESC LIMIT 10;
-
--- Check error stats
-SELECT * FROM get_error_stats('24 hours');
-
--- Check unresolved errors
-SELECT * FROM recent_critical_errors;
-```
+Expected: Calendar shows error, others work.
 
 ---
 
@@ -236,410 +135,157 @@ SELECT * FROM recent_critical_errors;
 
 ### Debug Workflow
 
-1. **Check browser console** - Look for JavaScript errors
-2. **Check health endpoint** - Is a service down?
-3. **Check error logs** - Recent errors in database?
-4. **Check Supabase logs** - Database query issues?
-5. **Check terminal** - Server-side errors?
+1. Check browser console
+2. Check health endpoint
+3. Check error_logs table
+4. Check Supabase logs
+5. Check terminal
 
 ### Common Debug Commands
 
 ```bash
-# Check dev server logs
-npm run dev
-
-# Check environment variables are loaded
-echo $NEXT_PUBLIC_SUPABASE_URL
-
-# Clear Next.js cache
+# Clear cache
 rm -rf .next
 
-# Reinstall dependencies
+# Reinstall
 rm -rf node_modules package-lock.json
 npm install
-```
 
-### Debugging Tools
-
-**Browser DevTools:**
-- **Console:** JavaScript errors and logs
-- **Network:** API call failures
-- **Application:** Check cookies, local storage
-
-**Health Endpoint:**
-```
-http://localhost:3000/api/health
-```
-- Shows which services are down
-- Response time issues
-- Token expiration status
-
-**Supabase Dashboard:**
-- **Table Editor:** View data directly
-- **SQL Editor:** Run custom queries
-- **Logs:** See real-time database queries
-- **Auth:** Check user sessions
-
-### Logger Debug Mode
-
-```bash
-# Enable debug logging
+# Debug logging
 NEXT_PUBLIC_LOG_LEVEL=debug npm run dev
 ```
 
-Then check console for detailed logs.
-
 ### Common Issues
 
-#### Issue: "Failed to fetch calendar events"
+**"Failed to fetch calendar"**
+1. Check health endpoint - token expired?
+2. Check google_tokens table
+3. Check browser console
+4. Try reconnecting
 
-**Symptoms:** Calendar shows error message
+**"Logger not writing to database"**
+1. Check RLS policies
+2. Check Supabase credentials
+3. Test manual insert
 
-**Debug Steps:**
-1. Check health endpoint - is token expired?
-2. Check Supabase `google_tokens` table - does token exist?
-3. Check browser console - what's the error?
-4. Check error_logs table - full error details
-
-**Solutions:**
-- Delete token row, reconnect Google Calendar
-- Check Google OAuth credentials in .env.local
-- Verify redirect URI matches Google Cloud Console
-
-#### Issue: "Logger not writing to database"
-
-**Symptoms:** Errors in console but not in error_logs table
-
-**Debug Steps:**
-1. Check RLS policies on error_logs table
-2. Check Supabase credentials in .env.local
-3. Check browser console for Supabase errors
-4. Try manual insert to test permissions
-
-**Solutions:**
-```sql
--- Test RLS policies
-SELECT * FROM pg_policies WHERE tablename = 'error_logs';
-
--- Test manual insert
-INSERT INTO error_logs (level, service, message)
-VALUES ('info', 'test', 'Test message');
-```
-
-#### Issue: "Health endpoint returns 503"
-
-**Symptoms:** /api/health shows system down
-
-**Debug Steps:**
-1. Check todos table exists
-2. Check Supabase connection
-3. Check .env.local has correct credentials
-
-**Solutions:**
-- Run database migrations
-- Verify Supabase URL and anon key
-- Check Supabase project status
+**"Health endpoint 503"**
+1. Check tables exist
+2. Verify Supabase connection
+3. Run migrations
 
 ---
 
 ## Code Style
 
-### JavaScript Style
+### JavaScript
 
-**Conventions:**
-- Use `const` by default, `let` when reassigning
-- Use arrow functions for callbacks
-- Use async/await over promises
-- Use template literals for strings
-- Use destructuring when helpful
-
-**Example:**
 ```javascript
-// Good
-const fetchEvents = async () => {
-  const { data, error } = await supabase.from('todos').select('*')
+// Use const by default
+const fetchData = async () => {
+  const { data, error } = await supabase
+    .from('todos')
+    .select('*')
   if (error) throw error
   return data
 }
-
-// Avoid
-function fetchEvents() {
-  return supabase.from('todos').select('*').then(function(result) {
-    if (result.error) throw result.error
-    return result.data
-  })
-}
 ```
 
-### React Style
+### React
 
-**Conventions:**
-- Use functional components
-- Use hooks (useState, useEffect)
-- Keep components focused (single responsibility)
-- Extract reusable logic into custom hooks
-- Use error boundaries around components
-
-**Example:**
 ```javascript
-// Good
+// Functional components with hooks
 export default function TodoList({ userId }) {
   const [todos, setTodos] = useState([])
-  const [loading, setLoading] = useState(true)
   
   useEffect(() => {
     fetchTodos()
   }, [userId])
   
-  return <div>{/* component JSX */}</div>
-}
-
-// Avoid: Class components
-class TodoList extends React.Component {
-  // ...
+  return <div>{/* JSX */}</div>
 }
 ```
 
-### File Organization
+### Naming
 
-```
-project-root/
-├── app/                    # Next.js app directory
-│   ├── page.js            # Main dashboard
-│   ├── login/
-│   │   └── page.js        # Login page
-│   └── api/               # API routes
-│       ├── health/
-│       ├── calendar/
-│       └── auth/
-├── components/            # React components
-│   ├── Calendar.js
-│   ├── TodoList.js
-│   ├── GroceryList.js
-│   └── ErrorBoundary.js
-├── lib/                   # Utilities
-│   ├── logger.js
-│   └── supabase/
-│       ├── client.js
-│       └── server.js
-├── docs/                  # Documentation
-│   ├── ARCHITECTURE.md
-│   ├── DEVELOPMENT.md
-│   └── CHANGELOG.md
-└── supabase-migrations/   # Database migrations
-    └── 001_error_logs.sql
-```
-
-### Naming Conventions
-
-**Files:**
-- Components: `PascalCase.js` (e.g., `Calendar.js`)
-- Utilities: `camelCase.js` (e.g., `logger.js`)
-- API routes: `route.js` (Next.js convention)
-- SQL: `###_description.sql` (e.g., `001_error_logs.sql`)
-
-**Variables:**
-- Constants: `UPPER_SNAKE_CASE` (e.g., `LOG_LEVELS`)
-- Functions: `camelCase` (e.g., `fetchCalendarEvents`)
-- Components: `PascalCase` (e.g., `ErrorBoundary`)
-- React hooks: `use` prefix (e.g., `useState`)
-
----
-
-## Git Workflow
-
-### Commit Messages
-
-Follow [Conventional Commits](https://www.conventionalcommits.org/):
-
-**Format:**
-```
-<type>: <description>
-
-[optional body]
-```
-
-**Types:**
-- `feat:` - New feature
-- `fix:` - Bug fix
-- `docs:` - Documentation changes
-- `refactor:` - Code refactoring
-- `test:` - Adding/updating tests
-- `chore:` - Maintenance tasks
-
-**Examples:**
-```bash
-git commit -m "feat: add error logging database table"
-git commit -m "fix: calendar not refreshing after reconnect"
-git commit -m "docs: update architecture with Phase 1 changes"
-git commit -m "refactor: extract logger into separate utility"
-```
-
-### Branch Strategy
-
-**Main branch:** `main` (always production-ready)
-
-**Feature branches:**
-```bash
-feature/error-handling
-feature/multi-calendar
-fix/calendar-refresh-bug
-docs/architecture-update
-```
-
-**Branch lifecycle:**
-1. Create from `main`
-2. Make changes
-3. Push to GitHub
-4. Merge back to `main`
-5. Delete branch
-
-### Before Pushing
-
-**Checklist:**
-- [ ] Code tested locally
-- [ ] No console errors
-- [ ] Health endpoint shows healthy
-- [ ] Commit message follows convention
-- [ ] No sensitive data in code
+- Components: `PascalCase.js`
+- Utilities: `camelCase.js`
+- Constants: `UPPER_SNAKE_CASE`
+- Functions: `camelCase`
 
 ---
 
 ## Common Tasks
 
-### Add a New Component
+### Add Component
 
-1. **Create file:** `components/NewComponent.js`
-2. **Write component:**
-```javascript
-'use client'
-import { useState } from 'react'
+1. Create `components/NewComponent.js`
+2. Write component
+3. Import in `app/page.js`
+4. Wrap in ErrorBoundary
+5. Test
 
-export default function NewComponent() {
-  return <div>New Component</div>
-}
-```
-3. **Add to page:** Import and use in `app/page.js`
-4. **Wrap in error boundary:** For resilience
-5. **Test:** Verify it works
+### Add API Route
 
-### Add a New API Route
+1. Create `app/api/endpoint/route.js`
+2. Write handler
+3. Test with curl
 
-1. **Create folder:** `app/api/new-endpoint/`
-2. **Create file:** `app/api/new-endpoint/route.js`
-3. **Write handler:**
-```javascript
-import { NextResponse } from 'next/server'
+### Add Database Table
 
-export async function GET(request) {
-  return NextResponse.json({ message: 'Hello' })
-}
-```
-4. **Test:** `curl http://localhost:3000/api/new-endpoint`
-
-### Add a Database Table
-
-1. **Create migration:** `supabase-migrations/00X_table_name.sql`
-2. **Write SQL:**
-```sql
-CREATE TABLE my_table (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users NOT NULL,
-  data TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Add RLS
-ALTER TABLE my_table ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users access own data"
-ON my_table FOR ALL
-USING (auth.uid() = user_id);
-```
-3. **Run in Supabase SQL Editor**
-4. **Test:** Query the table
-
-### Update Documentation
-
-1. **Architecture changes:** Update `docs/ARCHITECTURE.md`
-2. **New features:** Add to `docs/CHANGELOG.md`
-3. **Development process:** Update `docs/DEVELOPMENT.md`
-4. **Deployment:** Update `docs/DEPLOYMENT.md`
+1. Create `supabase-migrations/00X_name.sql`
+2. Write SQL with RLS
+3. Run in Supabase
+4. Test queries
 
 ---
 
 ## Troubleshooting
 
-### Development Server Won't Start
+### Port 3000 in use
 
-**Error:** `Port 3000 already in use`
-
-**Solution:**
 ```bash
-# Find process using port 3000
 lsof -i :3000
-
-# Kill the process
 kill -9 <PID>
-
 # Or use different port
 PORT=3001 npm run dev
 ```
 
-### Module Not Found
+### Module not found
 
-**Error:** `Cannot find module '@/lib/logger'`
-
-**Solution:**
 ```bash
-# Check file exists
-ls lib/logger.js
-
-# Reinstall dependencies
 npm install
-
-# Check jsconfig.json has path aliases
+# Check jsconfig.json
 ```
 
-### Database Connection Fails
+### Database connection fails
 
-**Error:** `Failed to connect to Supabase`
-
-**Solution:**
-1. Check `.env.local` has correct credentials
-2. Verify Supabase project is active
-3. Check internet connection
-4. Test manually:
+1. Check .env.local
+2. Verify Supabase project active
+3. Test connection:
 ```javascript
-import { createClient } from '@/lib/supabase/client'
-const supabase = createClient()
-const { data, error } = await supabase.from('todos').select('count')
-console.log(data, error)
+const { data } = await supabase.from('todos').select('count')
 ```
 
-### Google OAuth Not Working
+### OAuth not working
 
-**Error:** `redirect_uri_mismatch`
-
-**Solution:**
-1. Go to Google Cloud Console
-2. Check OAuth 2.0 Client ID
-3. Verify redirect URI exactly matches:
-   - Local: `http://localhost:3000/api/auth/google/callback`
-   - Production: `https://your-domain.vercel.app/api/auth/google/callback`
-4. No trailing slash!
+1. Check Google Cloud Console redirect URI
+2. Must exactly match: `http://localhost:3000/api/auth/google/callback`
+3. No trailing slash!
 
 ---
 
-## Next Steps
+## Resources
 
-After getting comfortable with development:
+**Internal:**
+- [WORKFLOW.md](./WORKFLOW.md) - Git & deployment
+- [ARCHITECTURE.md](./ARCHITECTURE.md) - System design
+- [ROADMAP.md](./ROADMAP.md) - What's next
+- [DEPLOYMENT.md](./DEPLOYMENT.md) - Production deployment
 
-1. **Read ARCHITECTURE.md** - Understand system design
-2. **Review CHANGELOG.md** - See what changed recently
-3. **Check GitHub issues** - Find tasks to work on
-4. **Start with small tasks** - Build confidence
-5. **Ask questions** - When stuck, ask!
+**External:**
+- [Next.js Docs](https://nextjs.org/docs)
+- [Supabase Docs](https://supabase.com/docs)
+- [Tailwind CSS](https://tailwindcss.com/docs)
 
 ---
 
